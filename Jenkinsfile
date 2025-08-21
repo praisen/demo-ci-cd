@@ -41,6 +41,7 @@ pipeline {
         --format json \
         --output /app/trivy-report.json \
         /app
+      ls -l /app  # debug: confirm file exists inside workspace
     '''
   }
   post {
@@ -49,6 +50,7 @@ pipeline {
     }
   }
 }
+
 
 
 
