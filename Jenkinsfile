@@ -31,25 +31,19 @@ pipeline {
       }
     }
 
-    stage('Security: Dependency-Check') {
+    stage('Security: Trivy FS Scan') {
   steps {
-    withCredentials([string(credentialsId: 'NVD_API_KEY', variable: 'NVD_API_KEY')]) {
-      sh '''
-        echo "Using NVD API Key: $NVD_API_KEY"
-        mvn -B org.owasp:dependency-check-maven:aggregate \
-          -Dnvd.apiKey=$NVD_API_KEY \
-          -Dformat=HTML \
-          -DfailBuildOnCVSS=7 \
-          -Danalyzer.failOnError=false
-      '''
-    }
+    sh '''
+      docker run --rm -v $(pwd):/app aquasec/trivy:latest fs --exit-code 1 --severity HIGH,CRITICAL /app
+    '''
   }
   post {
     always {
-      archiveArtifacts artifacts: '**/dependency-check-report.html', fingerprint: true
+      archiveArtifacts artifacts: '**/trivy-report.json', fingerprint: true
     }
   }
 }
+
 
     stage('Docker Build & Push') {
       steps {
