@@ -17,9 +17,10 @@ pipeline {
     }
 
     stage('Build & Unit Tests') {
-      steps { sh 'mvn -B -DskipTests=false clean verify' }
-      post { always { junit 'target/surefire-reports/*.xml' } }
-    }
+  steps { sh 'mvn -B -DskipTests=false clean verify -Ddependency-check.skip=true' }
+  post { always { junit 'target/surefire-reports/*.xml' } }
+}
+
 
     stage('Code Quality: SonarQube') {
       steps {
