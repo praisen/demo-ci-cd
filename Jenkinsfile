@@ -3,7 +3,7 @@ pipeline {
 
   environment {
     DOCKERHUB_CRED = 'dockerhub'           // Create this in Jenkins Credentials
-    DOCKER_IMAGE = "YOUR_DOCKERHUB_USER/demo:${BUILD_NUMBER}"
+    DOCKER_IMAGE = "praisen/demo-ci-cd:${BUILD_NUMBER}"
     // If using SonarQube server configured in Jenkins as 'sonarqube':
     SONARQUBE_SERVER = 'sonarqube'         // Manage Jenkins > Configure System
     SONAR_PROJECT_KEY = 'demo'
