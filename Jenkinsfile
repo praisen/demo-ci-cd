@@ -32,9 +32,22 @@ pipeline {
     }
 
     stage('Security: Dependency-Check') {
-      steps { sh 'mvn -B org.owasp:dependency-check-maven:aggregate -Dformat=HTML -DfailBuildOnCVSS=7' }
-      post { always { archiveArtifacts artifacts: '**/dependency-check-report.html', fingerprint: true } }
+  steps {
+    withCredentials([string(credentialsId: 'NVD_API_KEY', variable: 'NVD_API_KEY')]) {
+      sh '''
+        mvn -B org.owasp:dependency-check-maven:aggregate \
+          -Dnvd.apiKey=$NVD_API_KEY \
+          -Dformat=HTML \
+          -DfailBuildOnCVSS=7
+      '''
     }
+  }
+  post {
+    always {
+      archiveArtifacts artifacts: '**/dependency-check-report.html', fingerprint: true
+    }
+  }
+}
 
     stage('Docker Build & Push') {
       steps {
