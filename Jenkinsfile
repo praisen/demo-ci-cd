@@ -35,7 +35,7 @@ pipeline {
     stage('Security: Trivy FS Scan') {
   steps {
     sh '''
-      # Run Trivy scan and output JSON report into Jenkins workspace
+      echo "Running Trivy FS scan..."
       docker run --rm -v $(pwd):/workspace aquasec/trivy:latest fs \
         --exit-code 0 \
         --severity HIGH,CRITICAL \
@@ -43,8 +43,8 @@ pipeline {
         --output /workspace/trivy-report.json \
         /workspace
 
-      # Debug: check file exists in Jenkins workspace
-      ls -lh $(pwd)/trivy-report.json
+      echo "Listing workspace after Trivy run:"
+      ls -lh $(pwd)
     '''
   }
   post {
@@ -53,6 +53,7 @@ pipeline {
     }
   }
 }
+
 
 
 
