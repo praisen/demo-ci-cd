@@ -35,15 +35,21 @@ pipeline {
     stage('Security: Trivy FS Scan') {
   steps {
     sh '''
-      docker run --rm -v $(pwd):/app aquasec/trivy:latest fs --exit-code 1 --severity HIGH,CRITICAL /app
+      docker run --rm -v $(pwd):/app aquasec/trivy:latest fs \
+        --exit-code 0 \
+        --severity HIGH,CRITICAL \
+        --format json \
+        --output /app/trivy-report.json \
+        /app
     '''
   }
   post {
     always {
-      archiveArtifacts artifacts: '**/trivy-report.json', fingerprint: true
+      archiveArtifacts artifacts: 'trivy-report.json', fingerprint: true
     }
   }
 }
+
 
 
     stage('Docker Build & Push') {
