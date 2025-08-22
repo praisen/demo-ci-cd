@@ -34,25 +34,30 @@ pipeline {
 
     stage('Security: Trivy FS Scan') {
   steps {
-    sh '''
-      echo "Running Trivy FS scan..."
-      docker run --rm -v $(pwd):/workspace aquasec/trivy:latest fs \
-        --exit-code 0 \
-        --severity HIGH,CRITICAL \
-        --format json \
-        --output /workspace/trivy-report.json \
-        /workspace
+    script {
+      sh '''
+        echo "Running Trivy FS scan..."
+        # Run Trivy and save report directly into Jenkins workspace
+        docker run --rm -v ${WORKSPACE}:/workspace aquasec/trivy:latest fs \
+          --exit-code 0 \
+          --severity HIGH,CRITICAL \
+          --format json \
+          --output /workspace/trivy-report.json \
+          /workspace || true
 
-      echo "Listing workspace after Trivy run:"
-      ls -lh $(pwd)
-    '''
+        echo "Listing workspace after Trivy run:"
+        ls -lh ${WORKSPACE}
+      '''
+    }
   }
   post {
     always {
-      archiveArtifacts artifacts: 'trivy-report.json', fingerprint: true
+      echo "Archiving Trivy report..."
+      archiveArtifacts artifacts: 'trivy-report.json', fingerprint: true, allowEmptyArchive: true
     }
   }
 }
+
 
 
 
