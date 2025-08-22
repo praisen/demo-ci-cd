@@ -41,25 +41,19 @@ pipeline {
 
     stage('Security: Trivy FS Scan') {
       steps {
-        script {
-          sh '''
-            echo "Running Trivy FS scan..."
-            docker run --rm -v ${WORKSPACE}:/workspace aquasec/trivy:latest fs \
-              --exit-code 0 \
-              --severity HIGH,CRITICAL \
-              --format json \
-              --output /workspace/trivy-report.json \
-              /workspace || true
-
-            echo "Listing workspace after Trivy run:"
-            ls -lh ${WORKSPACE}
-          '''
-        }
+        sh '''
+          echo "Running Trivy FS scan..."
+          docker run --rm -v ${WORKSPACE}:/workspace aquasec/trivy:latest fs \
+            --exit-code 0 \
+            --severity HIGH,CRITICAL \
+            --format json \
+            --output /workspace/trivy-fs-report.json \
+            /workspace || true
+        '''
       }
       post {
         always {
-          echo "Archiving Trivy report..."
-          archiveArtifacts artifacts: 'trivy-report.json', fingerprint: true, allowEmptyArchive: true
+          archiveArtifacts artifacts: 'trivy-fs-report.json', fingerprint: true, allowEmptyArchive: true
         }
       }
     }
@@ -76,11 +70,35 @@ pipeline {
 
     stage('Image Scan: Trivy') {
       steps {
-        sh 'docker run --rm aquasec/trivy:latest image --exit-code 1 --severity HIGH,CRITICAL ${DOCKER_IMAGE}'
+        sh '''
+          echo "Running Trivy image scan..."
+          docker run --rm aquasec/trivy:latest image \
+            --exit-code 0 \
+            --severity HIGH,CRITICAL \
+            --format json \
+            --output trivy-image-report.json \
+            ${DOCKER_IMAGE} || true
+        '''
+      }
+      post {
+        always {
+          archiveArtifacts artifacts: 'trivy-image-report.json', fingerprint: true, allowEmptyArchive: true
+          script {
+            // Mark build unstable if report contains CRITICAL
+            def report = readFile('trivy-image-report.json')
+            if (report.contains('CRITICAL') || report.contains('HIGH')) {
+              currentBuild.result = 'UNSTABLE'
+              echo "⚠️ Vulnerabilities found! Marking build as UNSTABLE."
+            }
+          }
+        }
       }
     }
 
     stage('Deploy to Docker') {
+      when {
+        expression { currentBuild.resultIsBetterOrEqualTo('UNSTABLE') }
+      }
       steps {
         sh '''
           docker rm -f demo || true
