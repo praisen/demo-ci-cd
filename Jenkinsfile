@@ -2,10 +2,9 @@ pipeline {
   agent any
 
   environment {
-    DOCKERHUB_CRED = 'dockerhub'           // Create this in Jenkins Credentials
+    DOCKERHUB_CRED = 'dockerhub'           
     DOCKER_IMAGE = "praisen/demo-ci-cd:${BUILD_NUMBER}"
-    // If using SonarQube server configured in Jenkins as 'sonarqube':
-    SONARQUBE_SERVER = 'sonarqube'         // Manage Jenkins > Configure System
+    SONARQUBE_SERVER = 'sonarqube'         
     SONAR_PROJECT_KEY = 'demo'
   }
 
@@ -17,52 +16,53 @@ pipeline {
     }
 
     stage('Build & Unit Tests') {
-  steps { sh 'mvn -B -DskipTests=false clean verify -Ddependency-check.skip=true' }
-  post { always { junit 'target/surefire-reports/*.xml' } }
-}
-
+      steps { 
+        sh 'mvn -B -DskipTests=false clean verify -Ddependency-check.skip=true' 
+      }
+      post { 
+        always { junit 'target/surefire-reports/*.xml' } 
+      }
+    }
 
     stage('Code Quality: SonarQube') {
       steps {
         withSonarQubeEnv("${SONARQUBE_SERVER}") {
-          sh '''
-            mvn -B sonar:sonar               -Dsonar.projectKey=${SONAR_PROJECT_KEY}               -Dsonar.host.url=$SONAR_HOST_URL               -Dsonar.token=$SONAR_AUTH_TOKEN
-          '''
+          withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_AUTH_TOKEN')]) {
+            sh '''
+              mvn -B sonar:sonar \
+                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                -Dsonar.host.url=$SONAR_HOST_URL \
+                -Dsonar.login=$SONAR_AUTH_TOKEN
+            '''
+          }
         }
       }
     }
 
     stage('Security: Trivy FS Scan') {
-  steps {
-    script {
-      sh '''
-        echo "Running Trivy FS scan..."
-        # Run Trivy and save report directly into Jenkins workspace
-        docker run --rm -v ${WORKSPACE}:/workspace aquasec/trivy:latest fs \
-          --exit-code 0 \
-          --severity HIGH,CRITICAL \
-          --format json \
-          --output /workspace/trivy-report.json \
-          /workspace || true
+      steps {
+        script {
+          sh '''
+            echo "Running Trivy FS scan..."
+            docker run --rm -v ${WORKSPACE}:/workspace aquasec/trivy:latest fs \
+              --exit-code 0 \
+              --severity HIGH,CRITICAL \
+              --format json \
+              --output /workspace/trivy-report.json \
+              /workspace || true
 
-        echo "Listing workspace after Trivy run:"
-        ls -lh ${WORKSPACE}
-      '''
+            echo "Listing workspace after Trivy run:"
+            ls -lh ${WORKSPACE}
+          '''
+        }
+      }
+      post {
+        always {
+          echo "Archiving Trivy report..."
+          archiveArtifacts artifacts: 'trivy-report.json', fingerprint: true, allowEmptyArchive: true
+        }
+      }
     }
-  }
-  post {
-    always {
-      echo "Archiving Trivy report..."
-      archiveArtifacts artifacts: 'trivy-report.json', fingerprint: true, allowEmptyArchive: true
-    }
-  }
-}
-
-
-
-
-
-
 
     stage('Docker Build & Push') {
       steps {
@@ -76,7 +76,6 @@ pipeline {
 
     stage('Image Scan: Trivy') {
       steps {
-        // fails pipeline if HIGH/CRITICAL vulnerabilities found
         sh 'docker run --rm aquasec/trivy:latest image --exit-code 1 --severity HIGH,CRITICAL ${DOCKER_IMAGE}'
       }
     }
