@@ -11,8 +11,7 @@
 
   <properties>
     <java.version>17</java.version>
-    <!-- 🔼 Bump Spring Boot version -->
-    <spring-boot.version>3.3.11</spring-boot.version>
+    <spring-boot.version>3.3.2</spring-boot.version>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <dependency-check.version>9.2.0</dependency-check.version>
@@ -31,26 +30,10 @@
   </dependencyManagement>
 
   <dependencies>
-    <!-- Spring Boot Web (uses tomcat-embed-core) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
-
-    <!-- 🔼 Override Tomcat version explicitly -->
-    <dependency>
-      <groupId>org.apache.tomcat.embed</groupId>
-      <artifactId>tomcat-embed-core</artifactId>
-      <version>10.1.35</version>
-    </dependency>
-
-    <!-- 🔼 Override Spring Web MVC -->
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-webmvc</artifactId>
-      <version>6.1.14</version>
-    </dependency>
-
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -60,7 +43,7 @@
 
   <build>
     <plugins>
-      <!-- ✅ Executable JAR -->
+      <!-- Executable JAR -->
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
@@ -80,7 +63,7 @@
         <version>3.2.5</version>
       </plugin>
 
-      <!-- ✅ OWASP Dependency Check -->
+      <!-- OWASP Dependency Check -->
       <plugin>
         <groupId>org.owasp</groupId>
         <artifactId>dependency-check-maven</artifactId>
@@ -88,13 +71,14 @@
         <executions>
           <execution>
             <goals>
+              <!-- ✅ use check instead of aggregate -->
               <goal>check</goal>
             </goals>
           </execution>
         </executions>
         <configuration>
-          <format>ALL</format> <!-- HTML + XML + JSON -->
-          <failBuildOnCVSS>7</failBuildOnCVSS> <!-- Fail build if CVSS >= 7 -->
+          <format>ALL</format>
+          <failBuildOnCVSS>7</failBuildOnCVSS>
           <outputDirectory>${project.build.directory}/dependency-check-report</outputDirectory>
         </configuration>
       </plugin>
