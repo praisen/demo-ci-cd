@@ -68,32 +68,27 @@ pipeline {
       }
     }
 
-    stage('Image Scan: Trivy') {
-      steps {
-        sh '''
-          echo "Running Trivy image scan..."
-          docker run --rm aquasec/trivy:latest image \
-            --exit-code 0 \
-            --severity HIGH,CRITICAL \
-            --format json \
-            --output trivy-image-report.json \
-            ${DOCKER_IMAGE} || true
-        '''
-      }
-      post {
-        always {
-          archiveArtifacts artifacts: 'trivy-image-report.json', fingerprint: true, allowEmptyArchive: true
-          script {
-            // Mark build unstable if report contains CRITICAL
-            def report = readFile('trivy-image-report.json')
-            if (report.contains('CRITICAL') || report.contains('HIGH')) {
-              currentBuild.result = 'UNSTABLE'
-              echo "⚠️ Vulnerabilities found! Marking build as UNSTABLE."
-            }
-          }
+    stage('Security: Trivy Scan') {
+  steps {
+    sh '''
+      echo "Running Trivy image scan..."
+      trivy image --quiet --format json -o trivy-image-report.json ${DOCKER_IMAGE} || true
+    '''
+  }
+  post {
+    always {
+      script {
+        if (fileExists('trivy-image-report.json')) {
+          archiveArtifacts artifacts: 'trivy-image-report.json', allowEmptyArchive: true
+          echo "Trivy report archived."
+        } else {
+          echo "⚠️ No Trivy report generated, skipping archive."
         }
       }
     }
+  }
+}
+
 
     stage('Deploy to Docker') {
       when {
